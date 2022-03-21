@@ -6,9 +6,8 @@ class OrthogonalLoss(nn.Module):
 
 	def __init__(self, opts):
 		super(OrthogonalLoss, self).__init__()
-		# self.device = 'cuda'  # elodie
 		B_path = opts.class_embedding_path
-		self.B = torch.stack(list(torch.load(B_path).values())).to(opts.device).permute(1,2,0)[:6]
+		self.B = torch.stack(list(torch.load(B_path, map_location=opts.device).values())).permute(1,2,0)[:6]
 
 	def forward(self, A):
 		dim = A.shape[-1]

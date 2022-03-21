@@ -15,10 +15,10 @@ class TrainOptions:
 		self.parser.add_argument('--input_nc', default=3, type=int, help='Number of input image channels to the psp encoder')
 		self.parser.add_argument('--label_nc', default=0, type=int, help='Number of input label channels to the psp encoder')
 
-		self.parser.add_argument('--batch_size', default=32, type=int, help='Batch size for training')
-		self.parser.add_argument('--valid_batch_size', default=8, type=int, help='Batch size for testing and inference')
-		self.parser.add_argument('--workers', default=8, type=int, help='Number of train dataloader workers')
-		self.parser.add_argument('--valid_workers', default=8, type=int, help='Number of test/inference dataloader workers')
+		self.parser.add_argument('--batch_size', default=2, type=int, help='Batch size for training')
+		self.parser.add_argument('--valid_batch_size', default=2, type=int, help='Batch size for testing and inference')
+		self.parser.add_argument('--workers', default=2, type=int, help='Number of train dataloader workers')
+		self.parser.add_argument('--valid_workers', default=2, type=int, help='Number of test/inference dataloader workers')
 		self.parser.add_argument('--local_rank', default=0, type=int, help='node rank for distributed training')
 
 		self.parser.add_argument('--output_size', default=1024, type=int, help='Output size of generator')

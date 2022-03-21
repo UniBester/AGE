@@ -107,7 +107,7 @@ class AGE(nn.Module):
 			from collections import OrderedDict
 			new_state_dict = OrderedDict()
 			for k, v in ckpt['state_dict'].items():
-				name = k.replace('.module','') 
+				name = k.replace('module.','') 
 				new_state_dict[name] = v
 			ckpt['state_dict'] = new_state_dict
 			self.ax.load_state_dict(get_keys(ckpt, 'ax'), strict=True)

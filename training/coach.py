@@ -51,7 +51,7 @@ class Coach:
 		if self.opts.sparse_lambda > 0:
 			self.sparse_loss = sparse_loss.SparseLoss().to(self.device).eval()
 		if self.opts.orthogonal_lambda > 0:
-			self.orthogonal_loss = orthogonal_loss.OrthogonalLoss().to(self.device).eval()
+			self.orthogonal_loss = orthogonal_loss.OrthogonalLoss(self.opts).to(self.device).eval()
 			B_path = self.opts.class_embedding_path
 			self.B = torch.stack(list(torch.load(B_path).values())).to(self.device).permute(1,2,0)[:6]
 
@@ -217,7 +217,7 @@ class Coach:
 			loss_dict['loss_l2'] = float(loss_l2)
 			loss += loss_l2 * self.opts.l2_lambda
 		if self.opts.orthogonal_lambda > 0:
-			loss_orthogonal_AB = self.orthogonal_loss(outputs['A'], self.B)
+			loss_orthogonal_AB = self.orthogonal_loss(outputs['A'])
 			loss_dict['loss_orthogonal_AB'] = float(loss_orthogonal_AB)
 			loss += (loss_orthogonal_AB) * self.opts.orthogonal_lambda
 		if self.opts.sparse_lambda > 0:

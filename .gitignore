@@ -109,15 +109,3 @@ experiment/
 .vscode/
 pretrained_models/
 data/
-vgg/
-flower/
-flower.zip
-transreal.zip
-statflower.npy
-statt.npy
-stat1.0.npy
-aniam_show_samples.zip
-animal_samples.zip
-animal_show_samples.zip
-rebuttal/
-pts/

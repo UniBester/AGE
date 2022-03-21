@@ -6,12 +6,12 @@ from utils import data_utils
 
 class ImagesDataset(Dataset):
 
-	def __init__(self, source_root, target_root, average_code_root, opts, target_transform=None, source_transform=None):
+	def __init__(self, source_root, target_root, opts, target_transform=None, source_transform=None):
 		self.source_paths = sorted(data_utils.make_dataset(source_root))
 		self.target_paths = sorted(data_utils.make_dataset(target_root))
 		self.source_transform = source_transform
 		self.target_transform = target_transform
-		self.average_codes = torch.load(average_code_root, map_location=torch.device('cpu'))
+		self.average_codes = torch.load(opts.class_embedding_path, map_location=torch.device("cpu"))
 		self.opts = opts
 
 	def __len__(self):

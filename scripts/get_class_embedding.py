@@ -23,9 +23,6 @@ from models.age import AGE
 
 def run():
     test_opts = TestOptions().parse()
-	# update test options with options used during training
-    # ckpt = torch.load(test_opts.psp_checkpoint_path, map_location='cpu')
-
     ckpt = torch.load(test_opts.psp_checkpoint_path, map_location='cpu')
     opts = ckpt['opts']
     opts.update(vars(test_opts))
@@ -43,8 +40,8 @@ def run():
     dataset_args = data_configs.DATASETS[opts.dataset_type]
     transforms_dict = dataset_args['transforms'](opts).get_transforms()
     data_path=test_opts.data_path
-    code_path=test_opts.codes_path
-    os.makedirs(code_path, exist_ok=True)
+    class_embedding_path=test_opts.class_embedding_path
+    os.makedirs(class_embedding_path, exist_ok=True)
     dataset = InferenceDataset(root=data_path,
                             transform=transforms_dict['transform_inference'],
                             opts=opts)
