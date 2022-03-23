@@ -1,14 +1,15 @@
-name: AGE
+name: pytorch1.10
 channels:
   - pytorch
+  - conda-forge
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=main
   - _openmp_mutex=4.5=1_gnu
   - blas=1.0=mkl
   - bzip2=1.0.8=h7b6447c_0
-  - ca-certificates=2021.9.30=h06a4308_1
-  - certifi=2021.10.8=py39h06a4308_0
+  - ca-certificates=2021.10.8=ha878542_0
+  - certifi=2021.10.8=py39hf3d152e_1
   - cudatoolkit=11.3.1=h2bc3f7f_2
   - ffmpeg=4.3=hf484d3e_0
   - freetype=2.10.4=h5ab3b9f_0
@@ -44,10 +45,12 @@ dependencies:
   - numpy-base=1.21.2=py39h79a1101_0
   - olefile=0.46=pyhd3eb1b0_0
   - openh264=2.1.0=hd408876_0
-  - openssl=1.1.1l=h7f8727e_0
+  - openssl=1.1.1m=h7f8727e_0
   - pillow=8.4.0=py39h5aabda8_0
   - pip=21.2.4=py39h06a4308_0
   - python=3.9.7=h12debd9_1
+  - python-lmdb=1.2.1=py39h2531618_1
+  - python_abi=3.9=2_cp39
   - pytorch=1.10.0=py3.9_cuda11.3_cudnn8.2.0_0
   - pytorch-mutex=1.0=cuda
   - readline=8.1=h27cfd23_0
@@ -72,6 +75,7 @@ dependencies:
     - google-auth-oauthlib==0.4.6
     - grpcio==1.41.1
     - idna==3.3
+    - joblib==1.1.0
     - kiwisolver==1.3.2
     - lpips==0.1.4
     - markdown==3.3.4
@@ -89,12 +93,15 @@ dependencies:
     - requests==2.26.0
     - requests-oauthlib==1.3.0
     - rsa==4.7.2
+    - scikit-learn==1.0.2
     - scipy==1.7.1
+    - sklearn==0.0
     - tensorboard==2.7.0
     - tensorboard-data-server==0.6.1
     - tensorboard-plugin-wit==1.8.0
+    - threadpoolctl==3.0.0
     - torch-tb-profiler==0.3.1
     - tqdm==4.62.3
     - urllib3==1.26.7
     - werkzeug==2.0.2
-prefix: /home/dgq/miniconda3/envs/AGE
+prefix: /home/dgq/miniconda3/envs/pytorch1.10

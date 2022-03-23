@@ -11,7 +11,6 @@ import torch.distributed as dist
 import torch.nn.functional as F
 from models.encoders import psp_encoders
 from models.stylegan2.model import Generator
-from configs.paths_config import model_paths
 
 
 

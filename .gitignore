@@ -109,3 +109,5 @@ experiment/
 .vscode/
 pretrained_models/
 data/
+scripts/
+command

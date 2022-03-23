@@ -29,38 +29,17 @@ from datasets.images_dataset import ImagesDataset
 from models.age import AGE
 from options.train_options import TrainOptions
 from criteria import orthogonal_loss, sparse_loss
-from training.ranger import Ranger
+from optimizer.ranger import Ranger
 from utils import common, train_utils
 import torch.multiprocessing as mp
 
-def init_dist_pytorch(local_rank, backend='nccl'):
-    if mp.get_start_method(allow_none=True) is None:
-        mp.set_start_method('spawn')
-
-    num_gpus = torch.cuda.device_count()
-    torch.cuda.set_device(local_rank % num_gpus)
-    dist.init_process_group(
-        backend=backend,
-        # init_method='tcp://127.0.0.1:%d' % tcp_port,
-        rank=local_rank,
-        world_size=num_gpus
-    )
-    rank = dist.get_rank()
-    return num_gpus, rank
-
 def train():
 	opts = TrainOptions().parse()
-	# local_rank=opts.local_rank
 	dist.init_process_group(backend="nccl", init_method="env://")
 	local_rank = dist.get_rank()
 	torch.cuda.set_device(local_rank)
-	# dist_utils.init_distributed_mode(opts)
 	device = torch.device("cuda", local_rank)
-	# print("device:",device)
 	opts.device = device
-
-
-
 
 	if dist.get_rank()==0:
 		print("opts.exp_dir:", opts.exp_dir)
@@ -68,10 +47,8 @@ def train():
 			raise Exception('Oops... {} already exists'.format(opts.exp_dir))
 		os.makedirs(opts.exp_dir)
 
-		# opts_dict = vars(opts)
-		# pprint.pprint(opts_dict)
-		# with open(os.path.join(opts.exp_dir, 'opt.json'), 'w') as f:
-		# 	json.dump(opts_dict, f, indent=4, sort_keys=True)
+		opts_dict = vars(opts)
+		pprint.pprint(opts_dict)
 
 		# Initialize logger
 		log_dir = os.path.join(opts.exp_dir, 'logs')
@@ -87,8 +64,6 @@ def train():
 
 	# Initialize network
 	net = AGE(opts).to(device)
-	# net = AGE(opts)
-	# net.cuda()
 	params = list(net.ax.parameters())
 	if opts.optim_name == 'adam':
 		optimizer = torch.optim.Adam(params, lr=opts.learning_rate)
@@ -98,13 +73,9 @@ def train():
 	# Estimate latent_avg via dense sampling if latent_avg is not available
 	if net.latent_avg is None:
 		net.latent_avg = net.decoder.mean_latent(int(1e5))[0].detach()
-
-	
-									
+					
 	net = nn.parallel.DistributedDataParallel(net, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=True)
-	# net = nn.parallel.DistributedDataParallel(net, device_ids=[local_rank], find_unused_parameters=True)
-
-	# net.ax = nn.parallel.DistributedDataParallel(net.decoder, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=False)
+	
 	# Initialize dataset
 	dataset_args = data_configs.DATASETS[opts.dataset_type]
 	transforms_dict = {
@@ -255,11 +226,11 @@ def calc_loss(opts, orthogonal, sparse, outputs, y):
 		loss += loss_l2 * opts.l2_lambda
 	if opts.orthogonal_lambda > 0:
 		loss_orthogonal_AB = orthogonal(outputs['A'])
-		loss_dict['loss_orthogonal_AB'] = loss_orthogonal_AB
+		loss_dict['loss_orthogona'] = loss_orthogonal_AB
 		loss += (loss_orthogonal_AB) * opts.orthogonal_lambda
 	if opts.sparse_lambda > 0:
 		loss_l1 = sparse(outputs['x'])
-		loss_dict['loss_l1'] = loss_l1
+		loss_dict['loss_sparse'] = loss_l1
 		loss += loss_l1 * opts.sparse_lambda
 	loss_dict['loss'] = loss
 	return loss, loss_dict, id_logs

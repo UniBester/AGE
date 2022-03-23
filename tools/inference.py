@@ -26,44 +26,41 @@ from models.age import AGE
 
 
 def get_n_distribution(net, transform, means, opts):
-    samples=os.listdir(opts.data_path)
-    xs0=[]
-    xs1=[]
+    samples=os.listdir(opts.train_data_path)
+    xs=[]
     for s in tqdm(samples):
         cate=s.split('_')[0]
         av_codes=means[cate].cuda()
-        from_im = Image.open(os.path.join(opts.data_path,s))
+        from_im = Image.open(os.path.join(opts.train_data_path,s))
         from_im = from_im.convert('RGB')
         from_im = transform(from_im)
         with torch.no_grad():
             x=net.get_code(from_im.unsqueeze(0).to("cuda").float(), av_codes.unsqueeze(0))
-            xs=torch.linalg.lstsq(x['A'], x['odw'][0][:6]).solution
-            xs0.append(x[0].squeeze(0).squeeze(0))
-            xs1.append(x[1].squeeze(0).squeeze(0))
-    codes0=torch.stack(xs0)
-    mean_abs0=np.mean(codes0.abs().cpu().numpy(),axis=0)
-    mean0=np.mean(codes0.cpu().numpy(),axis=0)
-    cov_codes0=codes0.cpu().numpy()
-    cov0=np.cov(cov_codes0.T)
-    codes1=torch.stack(xs1)
-    mean_abs1=np.mean(codes1.abs().cpu().numpy(),axis=0)
-    mean1=np.mean(codes1.cpu().numpy(),axis=0)
-    cov_codes1=codes1.cpu().numpy()
-    cov1=np.cov(cov_codes1.T)
-    np.save(opts.n_distribution_path,{'mean0':mean0, 'cov0':cov0, 'mean_abs0':mean_abs0, 'mean1':mean1, 'cov1':cov1, 'mean_abs1':mean_abs1})
+            xs.append(torch.linalg.lstsq(x['A'], x['odw'][0][:6]).solution)
+    codes=torch.stack(xs).cpu().numpy()
+    mean=np.mean(codes,axis=0)
+    mean_abs=np.mean(np.abs(codes),axis=0)
+    cov=[]
+    for i in range(codes.shape[0]):
+        cov.append(np.cov(codes[i].T))
+    np.save(opts.n_distribution_path,{'mean':mean, 'mean_abs':mean_abs, 'cov':cov})
 
 
-def sampler(outputs, opts):
-    p=np.load(opts.n_distribution_path,allow_pickle=True).item()
-    mean0=p['mean0']
-    cov0=p['cov0']
-    mean1=p['mean1']
-    cov1=p['cov1']
-    sampled_x0=np.random.multivariate_normal(mean=mean0, cov=cov0, size=1)
-    sampled_x0=torch.from_numpy(sampled_x0).unsqueeze(0).cuda().float()
-    sampled_x1=np.random.multivariate_normal(mean=mean1, cov=cov1, size=1)
-    sampled_x1=torch.from_numpy(sampled_x1).unsqueeze(0).cuda().float()
-    dw=torch.cat((1*torch.matmul(outputs['A'][:3], sampled_x0.transpose(1,2)).squeeze(-1),0.4*torch.matmul(outputs['A'][3:6], sampled_x1.transpose(1,2)).squeeze(-1)), dim=0)
+def sampler(outputs, dist, opts):
+    
+    means=dist['mean']
+    means_abs=dist['mean_abs']
+    covs=dist['cov']
+    one = torch.ones_like(torch.from_numpy(means[0]))
+    zero = torch.zeros_like(torch.from_numpy(means[0]))
+    dws=[]
+    for i in range(means.shape[0]):
+        x=torch.from_numpy(np.random.multivariate_normal(mean=means[i], cov=covs[i], size=1)).float().cuda()
+        mask = torch.where(torch.from_numpy(means_abs[i])>opts.beta, one, zero).cuda()
+        x=x*mask
+        dw=opts.alpha*torch.matmul(outputs['A'][i], x.transpose(0,1)).squeeze(-1)
+        dws.append(dw)
+    dws=torch.stack(dws)
     codes = torch.cat(((dw.unsqueeze(0)+ outputs['ocodes'][:, :6]), outputs['ocodes'][:, 6:]), dim=1)
     return codes
 
@@ -92,27 +89,29 @@ if __name__=='__main__':
     transform=transforms_dict['transform_inference']
 
 
-    # get n distribution
+    # get n distribution (only needs to be executed once)
     class_embeddings=torch.load(test_opts.class_embedding_path)
     get_n_distribution(net, transform, class_embeddings, test_opts)
 
 
+
     # generate data
+    dist=np.load(test_opts.n_distribution_path,allow_pickle=True).item()
     test_data_path=test_opts.test_data_path
     output_path=test_opts.output_path
     os.makedirs(output_path, exist_ok=True)
-    for cate in tqdm(os.listdir(test_data_path)):
-        os.makedirs(output_path+cate, exist_ok=True)
-        from_im = Image.open(test_data_path+cate)
-        from_im = from_im.convert('RGB')
-        from_im = transform(from_im)
-        outputs = net.get_test_code(from_im.unsqueeze(0).to("cuda").float())
-        for i in range(50):
-            codes=sampler(outputs)
+    from_ims = os.listdir(os.path.join(test_data_path))
+    for from_im_name in os.listdir(from_ims):
+        for j in tqdm(range(128)):
+            from_im = Image.open(os.path.join(test_data_path, from_im_name))
+            from_im = from_im.convert('RGB')
+            from_im = transform(from_im)
+            outputs = net.get_test_code(from_im.unsqueeze(0).to("cuda").float())
+            codes=sampler(outputs, dist, test_opts)
             with torch.no_grad():
                 res0 = net.decode(codes, randomize_noise=False, resize=opts.resize_outputs)
             res0 = tensor2im(res0[0])
-            im_save_path = os.path.join(output_path, cate, str(i)+'.jpg')
+            im_save_path = os.path.join(output_path, from_im_name+'_'+str(j)+'.jpg')
             Image.fromarray(np.array(res0)).save(im_save_path)
 
 
