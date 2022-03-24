@@ -33,7 +33,7 @@ All dependencies for defining the environment are provided in `environment/envir
 
 
 ### Pretrained pSp
-Here, we use pSp to find the latent code of real images in the latent domain of a pretrained StyleGAN generator. Follow the [instructions](https://github.com/eladrich/pixel2style2pixel.git) to train a pSp model firsly. Or you can also directly download the [pre-trained models]() we provide.
+Here, we use pSp to find the latent code of real images in the latent domain of a pretrained StyleGAN generator. Follow the [instructions](https://github.com/eladrich/pixel2style2pixel.git) to train a pSp model firsly. Or you can also directly download the [pSp pre-trained models](https://drive.google.com/drive/folders/1gTSghHGuwoj9gKsLc2bcUNF6ioFBpRWB?usp=sharing) we provide.
 
 
 ## Training
@@ -50,7 +50,7 @@ Here, we use pSp to find the latent code of real images in the latent domain of 
           └── ...                                  # ...
   ```
 
-  Here, we provide [organized Animal Faces dataset]() as an example:
+  Here, we provide [organized Animal Faces dataset](https://drive.google.com/drive/folders/1Ytv02FEMk_n_qJui8-fKowr5xKZTpYWb?usp=sharing) as an example:
   ```
   └── data_root
     ├── train                      
@@ -117,16 +117,21 @@ tools/train.py \
 
 ## Testing
 ### Inference
-Having trained your model, you can use `tools/inference.py` to apply the model on a set of images.   
+Having trained your model or using [pre-trained models](https://drive.google.com/drive/folders/17BZcbacTRSCPuapcLtVKQy9ZtTUzHfY_?usp=sharing) we provide, you can use `tools/inference.py` to apply the model on a set of images.   
 For example, 
 ```
 python tools/inference.py \
 --output_path=/path/to/output \
 --checkpoint_path=/path/to/checkpoint \
---data_path=/path/to/data_with_cate \
+--test_data_path=/path/to/test/input \
+--train/data_path=/path/to/training/data \
+--class_embedding_path=/path/to/classs/embeddings \
+--n_distribution_path=/path/to/save/n/distribution \
 --test_batch_size=4 \
 --test_workers=4 \
---class_embedding_path=/path/to/class/embeddings
+--n_images=5 \
+--alpha=1 \
+--beta=0.005
 ```
 
 ## Repository structure
@@ -139,11 +144,23 @@ python tools/inference.py \
 | &boxvr;&nbsp; environment | Folder containing Anaconda environment used in our experiments
 | &boxvr; models | Folder containting all the models and training objects
 | &boxv;&nbsp; &boxvr;&nbsp; encoders | Folder containing our pSp encoder architecture implementation and ArcFace encoder implementation from [TreB1eN](https://github.com/TreB1eN/InsightFace_Pytorch)
-| &boxv;&nbsp; &boxvr;&nbsp; mtcnn | MTCNN implementation from [TreB1eN](https://github.com/TreB1eN/InsightFace_Pytorch)
 | &boxv;&nbsp; &boxvr;&nbsp; stylegan2 | StyleGAN2 model from [rosinality](https://github.com/rosinality/stylegan2-pytorch)
 | &boxv;&nbsp; &boxur;&nbsp; age.py | Implementation of our AGE
 | &boxvr;&nbsp; options | Folder with training and test command-line options
 | &boxvr;&nbsp; tools | Folder with running scripts for training and inference
 | &boxvr;&nbsp; optimizer | Folder with Ranger implementation from [lessw2020](https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer)
-| &boxvr;&nbsp; utils | Folder with various utility functions
+| &boxur;&nbsp; utils | Folder with various utility functions
 | <img width=300> | <img>
+
+## Citation
+If you use this code for your research, please cite our paper <a href="https://arxiv.org/abs/2203.08422">Attribute Group Editing for Reliable Few-shot Image Generation</a>:
+
+```
+@article{ding2022attribute,
+  title={Attribute Group Editing for Reliable Few-shot Image Generation},
+  author={Ding, Guanqi and Han, Xinzhe and Wang, Shuhui and Wu, Shuzhe and Jin, Xin and Tu, Dandan and Huang, Qingming},
+  journal={arXiv preprint arXiv:2203.08422},
+  year={2022}
+}
+
+```

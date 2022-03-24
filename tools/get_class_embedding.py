@@ -70,7 +70,7 @@ def run():
     means={}
     for cate in codes.keys():
         means[cate]=codes[cate]/counts[cate]
-    torch.save(means,os.path.join(class_embedding_path, 'class_embedding.pt'))
+    torch.save(means,os.path.join(class_embedding_path, 'class_embeddings.pt'))
 
 if __name__ == '__main__':
     run()

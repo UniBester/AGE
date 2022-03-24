@@ -111,9 +111,8 @@ def train():
 	if local_rank==0:
 		print(f"Number of training samples: {len(train_dataset)}")
 		print(f"Number of valid samples: {len(valid_dataset)}")
-	# train_dataset, valid_dataset = configure_datasets(opts, local_rank)
-	train_sampler = DistributedSampler(train_dataset, shuffle=True)
-	valid_sampler = DistributedSampler(valid_dataset, shuffle=False)
+	train_sampler = DistributedSampler(train_dataset, shuffle=True, drop_last=True)
+	valid_sampler = DistributedSampler(valid_dataset, shuffle=False, drop_last=True)
 
 	train_dataloader = DataLoader(train_dataset,
 										batch_size=opts.batch_size,

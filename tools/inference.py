@@ -6,31 +6,25 @@ from tqdm import tqdm
 import numpy as np
 from PIL import Image
 import torch
-import torch.nn.functional as F
 import sys
-import json
-import lpips
-import cv2
 import random
-import shutil
 
 sys.path.append(".")
 sys.path.append("..")
 
 from configs import data_configs
-from datasets.inference_dataset import InferenceDataset
-from utils.common import tensor2im, log_input_image
+from utils.common import tensor2im
 from options.test_options import TestOptions
 from models.age import AGE
 
 
 
-def get_n_distribution(net, transform, means, opts):
+def get_n_distribution(net, transform, class_embeddings, opts):
     samples=os.listdir(opts.train_data_path)
     xs=[]
     for s in tqdm(samples):
         cate=s.split('_')[0]
-        av_codes=means[cate].cuda()
+        av_codes=class_embeddings[cate].cuda()
         from_im = Image.open(os.path.join(opts.train_data_path,s))
         from_im = from_im.convert('RGB')
         from_im = transform(from_im)
@@ -43,7 +37,8 @@ def get_n_distribution(net, transform, means, opts):
     cov=[]
     for i in range(codes.shape[0]):
         cov.append(np.cov(codes[i].T))
-    np.save(opts.n_distribution_path,{'mean':mean, 'mean_abs':mean_abs, 'cov':cov})
+    os.makedirs(opts.n_distribution_path, exist_ok=True)
+    np.save(os.path.join(opts.n_distribution_path, 'n_distribution.npy'),{'mean':mean, 'mean_abs':mean_abs, 'cov':cov})
 
 
 def sampler(outputs, dist, opts):
@@ -90,19 +85,19 @@ if __name__=='__main__':
 
 
     # get n distribution (only needs to be executed once)
-    class_embeddings=torch.load(test_opts.class_embedding_path)
-    get_n_distribution(net, transform, class_embeddings, test_opts)
+    # class_embeddings=torch.load(os.path.join(test_opts.class_embedding_path, 'class_embeddings.pt'))
+    # get_n_distribution(net, transform, class_embeddings, test_opts)
 
 
 
     # generate data
-    dist=np.load(test_opts.n_distribution_path,allow_pickle=True).item()
+    dist=np.load(os.path.join(opts.n_distribution_path, 'n_distribution.npy'), allow_pickle=True).item()
     test_data_path=test_opts.test_data_path
     output_path=test_opts.output_path
     os.makedirs(output_path, exist_ok=True)
-    from_ims = os.listdir(os.path.join(test_data_path))
-    for from_im_name in os.listdir(from_ims):
-        for j in tqdm(range(128)):
+    from_ims = os.listdir(test_data_path)
+    for from_im_name in from_ims:
+        for j in tqdm(range(test_opts.n_images)):
             from_im = Image.open(os.path.join(test_data_path, from_im_name))
             from_im = from_im.convert('RGB')
             from_im = transform(from_im)
