@@ -29,6 +29,7 @@ from datasets.images_dataset import ImagesDataset
 from models.age import AGE
 from options.train_options import TrainOptions
 from criteria import orthogonal_loss, sparse_loss
+from criteria.lpips.lpips import LPIPS
 from optimizer.ranger import Ranger
 from utils import common, train_utils
 import torch.multiprocessing as mp
@@ -124,10 +125,18 @@ def train():
 										sampler=valid_sampler)
 
 	# Initialize loss
+	if opts.lpips_lambda > 0:
+		lpips = LPIPS(net_type='vgg').to(device).eval()
+	else:
+		lpips=None
 	if opts.sparse_lambda > 0:
 		sparse = sparse_loss.SparseLoss().to(device).eval()
+	else:
+		sparse=None
 	if opts.orthogonal_lambda > 0:
 		orthogonal = orthogonal_loss.OrthogonalLoss(opts).to(device).eval()
+	else:
+		orthogonal=None
 
 	global_step = 0
 	net.train()
@@ -137,7 +146,7 @@ def train():
 			x, y, av_codes = batch
 			x, y, av_codes = x.to(device).float(), y.to(device).float(), av_codes.to(device).float()
 			outputs = net.forward(x, av_codes, return_latents=True)
-			loss, loss_dict, id_logs = calc_loss(opts, orthogonal, sparse, outputs, y)
+			loss, loss_dict, id_logs = calc_loss(opts, outputs, y, orthogonal, sparse, lpips)
 			loss.backward()
 			optimizer.step()
 			loss_dict = reduce_loss_dict(loss_dict)
@@ -154,12 +163,12 @@ def train():
 			val_loss_dict = None
 			if global_step % opts.val_interval == 0 or global_step == opts.max_steps:
 				if dist.get_rank()==0:
-					val_loss_dict = validate(opts, net, orthogonal, sparse, valid_dataloader, device, global_step, logger)
+					val_loss_dict = validate(opts, net, orthogonal, sparse, lpips, valid_dataloader, device, global_step, logger)
 					if val_loss_dict and (best_val_loss is None or val_loss_dict['loss'] < best_val_loss):
 						best_val_loss = val_loss_dict['loss']
 						checkpoint_me(net, opts, checkpoint_dir, best_val_loss, global_step, loss_dict, is_best=True)
 				else:
-					val_loss_dict = validate(opts, net, orthogonal, sparse, valid_dataloader, device, global_step)
+					val_loss_dict = validate(opts, net, orthogonal, sparse, lpips, valid_dataloader, device, global_step)
 
 			if dist.get_rank()==0:
 				if global_step % opts.save_interval == 0 or global_step == opts.max_steps:
@@ -175,7 +184,7 @@ def train():
 
 			global_step += 1
 
-def validate(opts, net, orthogonal, sparse, valid_dataloader, device, global_step, logger=None):
+def validate(opts, net, orthogonal, sparse, lpips, valid_dataloader, device, global_step, logger=None):
 	net.eval()
 	agg_loss_dict = []
 	for batch_idx, batch in enumerate(valid_dataloader):
@@ -183,7 +192,7 @@ def validate(opts, net, orthogonal, sparse, valid_dataloader, device, global_ste
 		with torch.no_grad():
 			x, y, av_codes = x.to(device).float(), y.to(device).float(), av_codes.to(device).float()
 			outputs = net.forward(x, av_codes, return_latents=True)
-			loss, cur_loss_dict, id_logs = calc_loss(opts, orthogonal, sparse, outputs, y)
+			loss, cur_loss_dict, id_logs = calc_loss(opts, outputs, y, orthogonal, sparse, lpips)
 		agg_loss_dict.append(cur_loss_dict)
 
 		# Logging related
@@ -215,7 +224,7 @@ def checkpoint_me(net, opts, checkpoint_dir, best_val_loss, global_step, loss_di
 		else:
 			f.write(f'Step - {global_step}, \n{loss_dict}\n')
 
-def calc_loss(opts, orthogonal, sparse, outputs, y):
+def calc_loss(opts, outputs, y, orthogonal, sparse, lpips):
 	loss_dict = {}
 	loss = 0.0
 	id_logs = None
@@ -223,6 +232,10 @@ def calc_loss(opts, orthogonal, sparse, outputs, y):
 		loss_l2 = F.mse_loss(outputs['y_hat'], y)
 		loss_dict['loss_l2'] = loss_l2
 		loss += loss_l2 * opts.l2_lambda
+	if opts.lpips_lambda > 0:
+		loss_lpips = lpips(outputs['y_hat'], y)
+		loss_dict['loss_lpips'] = loss_lpips
+		loss += loss_lpips * opts.lpips_lambda
 	if opts.orthogonal_lambda > 0:
 		loss_orthogonal_AB = orthogonal(outputs['A'])
 		loss_dict['loss_orthogona'] = loss_orthogonal_AB
