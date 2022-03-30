@@ -18,7 +18,6 @@ from options.test_options import TestOptions
 from models.age import AGE
 
 
-
 def get_n_distribution(net, transform, class_embeddings, opts):
     samples=os.listdir(opts.train_data_path)
     xs=[]
@@ -29,11 +28,12 @@ def get_n_distribution(net, transform, class_embeddings, opts):
         from_im = from_im.convert('RGB')
         from_im = transform(from_im)
         with torch.no_grad():
-            x=net.get_code(from_im.unsqueeze(0).to("cuda").float(), av_codes.unsqueeze(0))
-            xs.append(torch.linalg.lstsq(x['A'], x['odw'][0][:6]).solution)
-    codes=torch.stack(xs).cpu().numpy()
-    mean=np.mean(codes,axis=0)
-    mean_abs=np.mean(np.abs(codes),axis=0)
+            x=net.get_code(from_im.unsqueeze(0).to("cuda").float(), av_codes.unsqueeze(0))['x']
+            x=torch.stack(x)
+            xs.append(x)
+    codes=torch.stack(xs).squeeze(2).squeeze(2).permute(1,0,2).cpu().numpy()
+    mean=np.mean(codes,axis=1)
+    mean_abs=np.mean(np.abs(codes),axis=1)
     cov=[]
     for i in range(codes.shape[0]):
         cov.append(np.cov(codes[i].T))
@@ -42,22 +42,24 @@ def get_n_distribution(net, transform, class_embeddings, opts):
 
 
 def sampler(outputs, dist, opts):
-    
     means=dist['mean']
     means_abs=dist['mean_abs']
     covs=dist['cov']
     one = torch.ones_like(torch.from_numpy(means[0]))
     zero = torch.zeros_like(torch.from_numpy(means[0]))
     dws=[]
+    groups=[[0,1,2],[3,4,5]]
     for i in range(means.shape[0]):
         x=torch.from_numpy(np.random.multivariate_normal(mean=means[i], cov=covs[i], size=1)).float().cuda()
         mask = torch.where(torch.from_numpy(means_abs[i])>opts.beta, one, zero).cuda()
         x=x*mask
-        dw=opts.alpha*torch.matmul(outputs['A'][i], x.transpose(0,1)).squeeze(-1)
-        dws.append(dw)
+        for g in groups[i]:
+            dw=torch.matmul(outputs['A'][g], x.transpose(0,1)).squeeze(-1)
+            dws.append(dw)
     dws=torch.stack(dws)
-    codes = torch.cat(((dw.unsqueeze(0)+ outputs['ocodes'][:, :6]), outputs['ocodes'][:, 6:]), dim=1)
+    codes = torch.cat(((opts.alpha*dws.unsqueeze(0)+ outputs['ocodes'][:, :6]), outputs['ocodes'][:, 6:]), dim=1)
     return codes
+
 
 
 
