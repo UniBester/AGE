@@ -29,7 +29,7 @@ class TrainOptions:
 		                         help='Whether to add average latent vector to generate codes from encoder.')
 		self.parser.add_argument('--learn_in_w', action='store_true', help='Whether to learn in w space insteaf of w+')
 
-		self.parser.add_argument('--class_embedding_path', default='data/class_embeddings.pt', type=str, help='path to class embedding')
+		self.parser.add_argument('--class_embedding_path', default=None, type=str, help='path to class embedding')
 		self.parser.add_argument('--psp_checkpoint_path', default=None, type=str, help='Path to pretrained pSp model checkpoint')
 		self.parser.add_argument('--checkpoint_path', default=None, type=str, help='Path to AGE model checkpoint')
 
