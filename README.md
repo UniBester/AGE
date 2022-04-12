@@ -156,11 +156,10 @@ python tools/inference.py \
 If you use this code for your research, please cite our paper <a href="https://arxiv.org/abs/2203.08422">Attribute Group Editing for Reliable Few-shot Image Generation</a>:
 
 ```
-@article{ding2022attribute,
+@inproceedings{ding2022attribute,
   title={Attribute Group Editing for Reliable Few-shot Image Generation},
   author={Ding, Guanqi and Han, Xinzhe and Wang, Shuhui and Wu, Shuzhe and Jin, Xin and Tu, Dandan and Huang, Qingming},
-  journal={arXiv preprint arXiv:2203.08422},
-  year={2022}
+  booktitle=CVPR,
+  year={2022},
 }
-
 ```
